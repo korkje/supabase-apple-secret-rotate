@@ -48,4 +48,6 @@ jobs:
           supabase-access-token: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 ```
 
-The action does one thing: mint, write, verify. It does not enable the Apple provider or touch any other auth config — set up the provider once in the [dashboard](https://supabase.com/dashboard) first, then let this keep the secret fresh.
+The action does one thing: mint, write, verify. Each rotation writes the secret **and** `external_apple_client_id` together — the secret is minted for exactly that client id (its `sub` claim), so the pair is only valid as a unit. It does not enable the Apple provider or touch any other auth config — flip the provider on once in the [dashboard](https://supabase.com/dashboard), and let this keep the credentials fresh.
+
+Note on verification: the Management API sanitizes secret values in responses, so the action verifies by the echoed (non-secret) client id plus the presence of a stored secret, never by comparing plaintext.
