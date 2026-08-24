@@ -1,0 +1,58 @@
+name: supabase-apple-secret-rotate
+description: Mint a fresh Sign in with Apple client secret and write it to a Supabase project's auth config.
+branding:
+  icon: refresh-cw
+  color: green
+
+inputs:
+  apple-team-id:
+    description: Apple Developer team ID.
+    required: true
+  apple-key-id:
+    description: Key ID of the Apple .p8 signing key.
+    required: true
+  apple-client-id:
+    description: Apple Services ID used as the OAuth client ID.
+    required: true
+  apple-private-key:
+    description: Contents of the Apple .p8 private key (PEM).
+    required: true
+  supabase-project-ref:
+    description: Supabase project reference.
+    required: true
+  supabase-access-token:
+    description: Supabase Management API personal access token.
+    required: true
+  expires-in:
+    description: Lifetime of the minted secret in seconds (max 15777000).
+    required: false
+    default: "15777000"
+
+outputs:
+  expires-at:
+    description: ISO 8601 timestamp at which the new secret expires.
+    value: ${{ steps.rotate.outputs.expires-at }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Deno
+      uses: denoland/setup-deno@v2
+      with:
+        deno-version: v2.x
+        cache: true
+        cache-hash: ${{ github.action_path }}
+
+    - name: Rotate Apple client secret
+      id: rotate
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      env:
+        INPUT_APPLE_TEAM_ID: ${{ inputs.apple-team-id }}
+        INPUT_APPLE_KEY_ID: ${{ inputs.apple-key-id }}
+        INPUT_APPLE_CLIENT_ID: ${{ inputs.apple-client-id }}
+        INPUT_APPLE_PRIVATE_KEY: ${{ inputs.apple-private-key }}
+        INPUT_SUPABASE_PROJECT_REF: ${{ inputs.supabase-project-ref }}
+        INPUT_SUPABASE_ACCESS_TOKEN: ${{ inputs.supabase-access-token }}
+        INPUT_EXPIRES_IN: ${{ inputs.expires-in }}
+      run: deno run --allow-env --allow-write --allow-net=api.supabase.com src/main.ts
