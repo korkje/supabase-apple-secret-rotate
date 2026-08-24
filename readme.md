@@ -38,7 +38,7 @@ jobs:
   rotate:
     runs-on: ubuntu-latest
     steps:
-      - uses: korkje/supabase-apple-secret-rotate@v1
+      - uses: korkje/supabase-apple-secret-rotate@v0.1.0
         with:
           apple-team-id: ${{ vars.APPLE_TEAM_ID }}
           apple-key-id: ${{ vars.APPLE_KEY_ID }}
