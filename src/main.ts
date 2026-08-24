@@ -40,21 +40,32 @@ console.log(`Minted new Apple client secret, expires at ${expiresAt.toISOString(
 
 const client = new SupabaseClient(projectRef, accessToken);
 
-const patched = await client.setAppleSecret(jwt);
+const patched = await client.setAppleSecret(jwt, clientId);
 
-if (patched.external_apple_secret !== jwt) {
-    console.error("PATCH response did not echo the new secret in external_apple_secret");
-    Deno.exit(1);
-}
+// The API sanitizes secret values in responses (the dashboard shows them
+// masked for the same reason), so the plaintext never comes back and can't
+// be compared. Verify with what the API does echo: the non-secret client id
+// written in the same PATCH must match exactly, and the secret field must
+// be present and non-empty.
+const verify = (config: typeof patched, source: string) => {
+    if (config.external_apple_client_id !== clientId) {
+        console.error(
+            `Verification failed: ${source} has external_apple_client_id ` +
+                `"${config.external_apple_client_id ?? ""}", expected "${clientId}"`,
+        );
+        Deno.exit(1);
+    }
 
-const config = await client.getAuthConfig();
+    if (!config.external_apple_secret) {
+        console.error(`Verification failed: ${source} has no external_apple_secret`);
+        Deno.exit(1);
+    }
+};
 
-if (config.external_apple_secret !== jwt) {
-    console.error("Verification failed: external_apple_secret read back differs from the value written");
-    Deno.exit(1);
-}
+verify(patched, "PATCH response");
+verify(await client.getAuthConfig(), "auth config read-back");
 
-console.log("Verified: Supabase auth config now holds the new secret");
+console.log("Verified: Supabase auth config holds a secret for the expected client id");
 
 const output = Deno.env.get("GITHUB_OUTPUT");
 

@@ -1,5 +1,6 @@
 export interface AuthConfig {
     external_apple_secret?: string | null;
+    external_apple_client_id?: string | null;
     [key: string]: unknown;
 }
 
@@ -38,7 +39,14 @@ export class SupabaseClient {
         return this.request("GET");
     }
 
-    public setAppleSecret(secret: string): Promise<AuthConfig> {
-        return this.request("PATCH", { external_apple_secret: secret });
+    // The client id rides along with every rotation: the secret's `sub`
+    // claim is minted for exactly that id, and the pair is only valid
+    // together — a fresh secret against a stale or missing client id is
+    // broken config that would otherwise verify green.
+    public setAppleSecret(secret: string, clientId: string): Promise<AuthConfig> {
+        return this.request("PATCH", {
+            external_apple_secret: secret,
+            external_apple_client_id: clientId,
+        });
     }
 }
